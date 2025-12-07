@@ -1,5 +1,7 @@
 from hashing_pwd import register_user, login_user
 import bcrypt
+import sqlite3
+from app.data.db import *
 
 def menu():
     print("Hello user!!!")
@@ -13,12 +15,15 @@ def main():
         menu()
         choice = input(" > ")
         if choice == "1":
-            register_user()
+            conn = connect_database(DB_PATH)
+            register_user(conn)
         elif choice == "2":
-            login_user()
+            conn = connect_database(DB_PATH)
+            if login_user(conn):
+                print("LOGIN SUCESSFULL!!")
         elif choice == "3":
             print("Goodbye user!!!")
             break
-
+    
 if __name__ == "__main__":
     main()
