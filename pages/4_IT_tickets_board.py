@@ -9,6 +9,8 @@ from app.data.tickets import (
     delete_ticket,
 )
 
+from app.data.ai_assistant_ollama import ai_assistant
+
 # -------------------------------------------------
 # 🔐 LOGIN PROTECTION
 # -------------------------------------------------
@@ -26,7 +28,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # -------------------------------------------------
-# 🔓 GLOBAL SIDEBAR
+# 🌐 GLOBAL SIDEBAR
 # -------------------------------------------------
 with st.sidebar:
     st.title("🌐 MDIP")
@@ -39,6 +41,15 @@ with st.sidebar:
 
     st.divider()
 
+    # 🤖 AI Assistant
+    ai_assistant(
+        context="IT Service Management Ticket Board",
+        username=st.session_state.username
+    )
+
+    st.divider()
+
+    # 🚪 Logout
     if st.button("🚪 Logout"):
         st.session_state.logged_in = False
         st.session_state.username = ""
@@ -46,7 +57,9 @@ with st.sidebar:
         st.success("You have been logged out.")
         st.rerun()
 
-
+# -------------------------------------------------
+# 📝 PAGE INTRO
+# -------------------------------------------------
 st.caption(
     "Track, manage, and resolve IT support tickets across the organisation."
 )
@@ -55,14 +68,12 @@ st.caption(
 # 📄 READ — Display All Tickets
 # ---------------------------------------------------------
 st.subheader("📄 All Tickets")
-st.caption(
-    "View all IT support tickets currently stored in the system."
-)
+st.caption("View all IT support tickets currently stored in the system.")
 
 tickets = get_all_tickets()
 df = pd.DataFrame(tickets)
 
-# Remove internal database index column
+# Remove internal SQLite index column if present
 df = df.drop(columns=["index"], errors="ignore")
 
 if not df.empty:
@@ -71,12 +82,37 @@ else:
     st.info("No tickets found in database.")
 
 # ---------------------------------------------------------
+# 📊 TICKET ANALYTICS (NEW)
+# ---------------------------------------------------------
+st.subheader("📊 Ticket Analytics")
+st.caption(
+    "Visual overview of ticket workload, urgency, and resolution progress."
+)
+
+if not df.empty:
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("### Tickets by Status")
+        st.caption("Shows how tickets are distributed across workflow states.")
+        status_counts = df["status"].value_counts()
+        st.bar_chart(status_counts)
+
+    with col2:
+        st.write("### Tickets by Priority")
+        st.caption("Highlights urgency levels across all tickets.")
+        priority_counts = df["priority"].value_counts()
+        st.bar_chart(priority_counts)
+
+else:
+    st.info("Charts will appear once tickets are available.")
+
+# ---------------------------------------------------------
 # ➕ CREATE — Admin & IT Roles
 # ---------------------------------------------------------
 st.subheader("➕ Create New Ticket")
-st.caption(
-    "Create a new IT support ticket by providing issue details and priority."
-)
+st.caption("Create a new IT support ticket with priority and assignment details.")
 
 if st.session_state.role in ("admin", "it_admin", "it_support"):
 
@@ -84,8 +120,7 @@ if st.session_state.role in ("admin", "it_admin", "it_support"):
         ticket_id = st.number_input("Ticket ID", step=1)
         priority = st.selectbox(
             "Priority",
-            ["Low", "Medium", "High", "Critical"],
-            help="Defines how urgent the issue is"
+            ["Low", "Medium", "High", "Critical"]
         )
         description = st.text_area("Description")
         status = st.selectbox(
@@ -117,15 +152,12 @@ else:
 # ✏️ UPDATE — Admin & IT Roles
 # ---------------------------------------------------------
 st.subheader("✏️ Update Ticket")
-st.caption(
-    "Modify existing ticket details such as priority, status, or assignment."
-)
+st.caption("Modify ticket priority, status, assignment, or resolution time.")
 
 if len(df) > 0:
     selected_id = st.selectbox(
         "Select Ticket to Update",
-        df["ticket_id"],
-        help="Choose the ticket you want to edit"
+        df["ticket_id"]
     )
     ticket = get_ticket_by_id(selected_id)
 
@@ -135,13 +167,19 @@ if len(df) > 0:
             ["Low", "Medium", "High", "Critical"],
             index=["Low", "Medium", "High", "Critical"].index(ticket["priority"])
         )
-        new_description = st.text_area("Description", ticket["description"])
+        new_description = st.text_area(
+            "Description",
+            ticket["description"]
+        )
         new_status = st.selectbox(
             "Status",
             ["Open", "In Progress", "Resolved", "Waiting for User"],
             index=["Open", "In Progress", "Resolved", "Waiting for User"].index(ticket["status"])
         )
-        new_assigned_to = st.text_input("Assigned To", ticket["assigned_to"])
+        new_assigned_to = st.text_input(
+            "Assigned To",
+            ticket["assigned_to"]
+        )
         new_resolution = st.number_input(
             "Resolution Time (Hours)",
             value=ticket["resolution_time_hours"],
@@ -168,15 +206,12 @@ else:
 # 🗑️ DELETE — Admin Only
 # ---------------------------------------------------------
 st.subheader("🗑️ Delete Ticket")
-st.caption(
-    "Permanently remove tickets that are no longer required."
-)
+st.caption("Permanently remove tickets that are no longer required.")
 
 if len(df) > 0:
     delete_id = st.selectbox(
         "Select Ticket to Delete",
-        df["ticket_id"],
-        help="This action cannot be undone"
+        df["ticket_id"]
     )
 
     if st.session_state.role == "admin":

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from app.data.cyber_incidents import *
+from app.data.ai_assistant_ollama import ai_assistant
 
 # -------------------------------------------------
 # 🔐 LOGIN PROTECTION
@@ -38,6 +39,14 @@ with st.sidebar:
         st.session_state.role = "user"
         st.success("You have been logged out.")
         st.rerun()
+
+    # -------------------------------------------------
+    # 🤖 AI ASSISTANT (OLLAMA)
+    # -------------------------------------------------
+    ai_assistant(
+        context="Cybersecurity Incidents Dashboard",
+        username=st.session_state.username
+    )
 
 
 st.caption("Monitor, analyse, and manage reported cybersecurity incidents across the organisation.")

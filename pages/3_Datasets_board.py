@@ -6,6 +6,7 @@ from app.data.datasets import (
     update_dataset,
     delete_dataset
 )
+from app.data.ai_assistant_ollama import ai_assistant
 
 # -------------------------------------------------
 # 🔐 LOGIN PROTECTION
@@ -44,6 +45,8 @@ with st.sidebar:
         st.success("You have been logged out.")
         st.rerun()
 
+    # Datasets page
+    ai_assistant(context="Dataset Metadata Management Dashboard", username=st.session_state.username)
 
 st.caption(
     "Manage dataset metadata including size, structure, ownership, and upload details."
